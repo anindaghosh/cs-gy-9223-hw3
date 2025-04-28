@@ -35,7 +35,6 @@ os_client = OpenSearch(
 lex_client = None
 if LEX_BOT_ID and LEX_BOT_ALIAS_ID:
     lex_client = boto3.client("lexv2-runtime")
-# --------------------------------
 
 
 def get_keywords_from_lex(query_text):
@@ -48,8 +47,8 @@ def get_keywords_from_lex(query_text):
         response = lex_client.recognize_text(
             botId=LEX_BOT_ID,
             botAliasId=LEX_BOT_ALIAS_ID,
-            localeId="en_US",  # Adjust if needed
-            sessionId=str(uuid.uuid4()),  # Simple session ID
+            localeId="en_US",
+            sessionId=str(uuid.uuid4()),
             text=query_text,
         )
 
@@ -66,7 +65,7 @@ def get_keywords_from_lex(query_text):
 
         if not keywords:  # Fallback if Lex doesn't find slots
             print(
-                f"Lex did not return specific keywords for '{query_text}'. Using raw query."
+                f"Lex did not return specific keywords for '{query_text}'. Using raw query instead."
             )
             return query_text.lower().split()
 
@@ -85,18 +84,14 @@ def search_opensearch(keywords):
 
     search_body = {
         "query": {
-            "bool": {
-                "should": [  # Use 'must' if all keywords should match
-                    {"match": {"labels": keyword}} for keyword in keywords
-                ]
-            }
+            "bool": {"should": [{"match": {"labels": keyword}} for keyword in keywords]}
         },
-        "_source": ["objectKey", "bucket", "labels"],  # Fetch necessary fields
+        "_source": ["objectKey", "bucket", "labels"],
     }
 
     try:
         response = os_client.search(index=OPENSEARCH_INDEX, body=search_body)
-        # --- Process Hits ---
+
         results = []
         for hit in response["hits"]["hits"]:
             source = hit["_source"]
@@ -117,7 +112,6 @@ def search_opensearch(keywords):
 def lambda_handler(event, context):
     print(f"Received event: {json.dumps(event)}")
 
-    # --- 1. Extract Search Query ---
     query = None
     if (
         "queryStringParameters" in event
@@ -141,11 +135,9 @@ def lambda_handler(event, context):
     keywords = get_keywords_from_lex(query)  # Use Lex or just split the query
     print(f"Using keywords: {keywords}")
 
-    # --- 3. Search OpenSearch ---
     search_results = search_opensearch(keywords)
     print(f"Found {len(search_results)} results.")
 
-    # --- 4. Format and Return Response ---
     response_body = {"results": search_results}
 
     return {
@@ -153,6 +145,6 @@ def lambda_handler(event, context):
         "headers": {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": "*",
-        },  # Add CORS header
+        },
         "body": json.dumps(response_body),
     }
