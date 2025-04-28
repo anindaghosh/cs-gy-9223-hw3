@@ -1,0 +1,53 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.11 # Or nodejs: 18, etc. - match your Lambda runtime
+    commands:
+      - echo "Installing dependencies if needed..."
+      # --- Dependency Installation (Example for Python) ---
+      # If you have requirements.txt inside lambdafunctions/lf1:
+      # - echo "Installing dependencies for lf1..."
+      # - pip install -r lambdafunctions/lf1/requirements.txt -t lambdafunctions/lf1
+      # If you have requirements.txt inside lambdafunctions/lf2:
+      # - echo "Installing dependencies for lf2..."
+      # - pip install -r lambdafunctions/lf2/requirements.txt -t lambdafunctions/lf2
+      # --- Adapt above for your package manager (e.g., npm install) ---
+
+  build:
+    commands:
+      - echo "Packaging Lambda functions..."
+      # --- Package LF1 (index-photos) ---
+      - cd lambdafunctions/lf1
+      - zip -r ../../index-photos_package.zip .  # Zip everything in lf1 directory
+      - cd ../.. # Return to repo root
+      - echo "Created index-photos_package.zip"
+
+      # --- Package LF2 (search-photos) ---
+      - cd lambdafunctions/lf2
+      - zip -r ../../search-photos_package.zip . # Zip everything in lf2 directory
+      - cd ../.. # Return to repo root
+      - echo "Created search-photos_package.zip"
+
+  post_build:
+    commands:
+      - echo "Deploying Lambda functions via AWS CLI..."
+      # --- Deploy LF1 (index-photos) ---
+      # Make sure 'index-photos' is the exact name of your Lambda function in AWS
+      - echo "Deploying index-photos..."
+      - aws lambda update-function-code --function-name index-photos --zip-file fileb://index-photos_package.zip --publish
+      - echo "index-photos deployment complete."
+
+      # --- Deploy LF2 (search-photos) ---
+      # Make sure 'search-photos' is the exact name of your Lambda function in AWS
+      - echo "Deploying search-photos..."
+      - aws lambda update-function-code --function-name search-photos --zip-file fileb://search-photos_package.zip --publish
+      - echo "search-photos deployment complete."
+
+      - echo "Lambda deployment phase finished."
+
+# No artifacts needed if deployment happens here
+# artifacts:
+#   files:
+#     - '**/*'
