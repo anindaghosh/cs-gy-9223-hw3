@@ -1,0 +1,22 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "No installation steps needed for static content."
+
+  build:
+    commands:
+      - echo "No build steps needed for static content."
+
+  post_build:
+    commands:
+      - echo "Copying static content to S3 bucket..."
+      # Adjust the source and destination paths to match your setup
+      - aws s3 sync ./ s3://cloud-hw3-fe-001 --delete
+artifacts:
+  files:
+    - '**/*' # Include all files from the frontend directory
+  base-directory: . # Set the base directory to the root of the frontend repo.
+  discard-paths: yes # Remove the base directory from the artifact's paths
+
