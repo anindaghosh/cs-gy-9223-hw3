@@ -27,7 +27,7 @@ os_client = OpenSearch(
 
 
 def lambda_handler(event, context):
-    # Extract bucket and key from S3 PUT event
+    # Extract bucket and key from S3 PUT event details
     record = event["Records"][0]["s3"]
     bucket = record["bucket"]["name"]
     key = record["object"]["key"]
