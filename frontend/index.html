@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0" />
+    <title>CS-GY Cloud Computing | HW3 Photo Search</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Include Generated AWS SDK Files -->
+    <!-- ================================================================== -->
+    <!-- IMPORTANT: Verify these paths match your generated SDK structure!  -->
+    <!-- You MUST generate and place the SDK files in the 'aws-sdk' folder -->
+    <!-- (or adjust paths accordingly)                                      -->
+    <!-- ================================================================== -->
+    <script type="text/javascript"
+            src="aws-sdk/lib/axios/dist/axios.standalone.js"></script>
+    <script type="text/javascript"
+            src="aws-sdk/lib/CryptoJS/rollups/hmac-sha256.js"></script>
+    <script type="text/javascript"
+            src="aws-sdk/lib/CryptoJS/rollups/sha256.js"></script>
+    <script type="text/javascript"
+            src="aws-sdk/lib/CryptoJS/components/hmac.js"></script>
+    <script type="text/javascript"
+            src="aws-sdk/lib/CryptoJS/components/enc-base64.js"></script>
+    <script type="text/javascript"
+            src="aws-sdk/lib/url-template/url-template.js"></script>
+    <script type="text/javascript"
+            src="aws-sdk/lib/apiGatewayCore/sigV4Client.js"></script>
+    <script type="text/javascript"
+            src="aws-sdk/lib/apiGatewayCore/apiGatewayClient.js"></script>
+    <script type="text/javascript"
+            src="aws-sdk/lib/apiGatewayCore/simpleHttpClient.js"></script>
+    <script type="text/javascript"
+            src="aws-sdk/lib/apiGatewayCore/utils.js"></script>
+    <script type="text/javascript"
+            src="aws-sdk/apigClient.js"></script> <!-- YOUR specific generated API client -->
+
+</head>
+
+<body class="bg-gray-50 text-gray-800">
+    <div class="max-w-4xl mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-6 text-center">Photo Album</h1>
+
+        <!-- Search Section -->
+        <div class="mb-8">
+            <div class="flex">
+                <input id="searchInput"
+                       type="text"
+                       placeholder="Search photos..."
+                       class="flex-grow p-2 border rounded-l-md focus:outline-none" />
+                <button id="searchBtn"
+                        class="px-4 bg-blue-600 text-white rounded-r-md hover:bg-blue-700">
+                    Search
+                </button>
+            </div>
+        </div>
+
+        <!-- Gallery -->
+        <div id="gallery"
+             class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-12">
+            <!-- Images will be inserted here -->
+        </div>
+
+        <!-- Upload Section -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h2 class="text-2xl font-semibold mb-4">Upload New Photo</h2>
+            <input id="fileInput"
+                   type="file"
+                   accept="image/*"
+                   class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-4" />
+            <input id="labelsInput"
+                   type="text"
+                   placeholder="Custom labels (comma-separated)"
+                   class="w-full p-2 mb-4 border rounded focus:outline-none" />
+            <button id="uploadBtn"
+                    class="w-full py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                Upload Photo
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ==================================================
+        // IMPORTANT CONFIGURATION
+        // ==================================================
+        // 1. Replace <YOUR_API_KEY> with your actual API Key
+        // 2. Ensure you have generated the SDK and included the scripts above correctly.
+        // 3. Verify the SDK method names (e.g., searchGet, photosPut) match your generated SDK.
+        // 4. Verify the backend configuration (API Gateway/Lambda) for uploads, especially custom headers.
+        // ==================================================
+
+        const API_KEY = '7I4BUcSRl74AdFHMziJPZ6O67T6maAMU6xfWUocx'; // REPLACE THIS
+
+        // Instantiate the SDK Client
+        var apigClient = apigClientFactory.newClient({
+            apiKey: API_KEY
+            // region: '<REGION>' // Usually not needed if endpoint correct in SDK
+        });
+
+        // Elements
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const gallery = document.getElementById('gallery');
+        const fileInput = document.getElementById('fileInput');
+        const labelsInput = document.getElementById('labelsInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+
+        // Search handler (Using SDK)
+        searchBtn.addEventListener('click', async () => {
+            const queryText = searchInput.value.trim();
+            if (!queryText) return;
+
+            gallery.innerHTML = '<p class="text-center col-span-full">Searching...</p>'; // Indicate searching
+
+            // Parameters for the SDK call (adjust based on your SDK's search method)
+            const params = {
+                q: queryText // Standard query parameter
+            };
+            const body = {}; // Usually empty for GET
+            const additionalParams = {
+                headers: {
+                    // API Key is handled by the client instance if configured
+                    // Add other headers if needed by your API method request
+                }
+            };
+
+            try {
+                // ==========================================================
+                // Verify SDK Method Name: Replace 'searchGet' if necessary
+                // ==========================================================
+                const result = await apigClient.searchGet(params, body, additionalParams);
+
+                console.log("Search Response:", result); // Log for debugging
+
+                gallery.innerHTML = ''; // Clear gallery before adding results
+
+                // Process results (data is often in result.data)
+                // ** Adjust based on SDK response structure **
+                if (result && result.data && Array.isArray(result.data.results) && result.data.results.length > 0) {
+                    result.data.results.forEach(item => {
+                        // ** Adjust based on your ACTUAL search response structure **
+                        // Check if 'url' exists directly (from Lambda potentially)
+                        // Otherwise, construct from bucket/objectKey if those are returned
+                        const url = item.url || `https://${item.bucket}.s3.amazonaws.com/${item.objectKey}`;
+
+                        const img = document.createElement('img');
+                        img.src = url;
+                        img.alt = item.objectKey || item.url || "Search Result"; // Adjust alt text source
+                        img.title = `Labels: ${item.labels ? item.labels.join(', ') : 'N/A'}`; // Show labels on hover
+                        img.className = 'w-full h-48 object-cover rounded shadow-md cursor-pointer'; // Improved styling
+                        img.onerror = () => { // Handle broken image links
+                            img.alt = "Image not found";
+                            img.src = ""; // Optional: set a placeholder image
+                            img.style.border = "1px solid red";
+                        };
+                        gallery.appendChild(img);
+                    });
+                } else if (result && result.data && Array.isArray(result.data.results) && result.data.results.length === 0) {
+                    gallery.innerHTML = '<p class="text-center col-span-full">No photos found matching your query.</p>';
+                } else {
+                    console.log("Unexpected response format or no data:", result);
+                    gallery.innerHTML = '<p class="text-center col-span-full">Could not retrieve results.</p>';
+                }
+            } catch (error) {
+                console.error('Search failed:', error);
+                gallery.innerHTML = '<p class="text-center text-red-600 col-span-full">Search failed. Check console for details.</p>';
+                // alert('Search failed. See console for details.'); // Alert can be annoying
+            }
+        });
+
+        // Add listener for Enter key in search input
+        searchInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                searchBtn.click(); // Trigger search button click
+            }
+        });
+
+
+        // Upload handler (Using SDK)
+        uploadBtn.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please choose an image file first.');
+                return;
+            }
+            const custom = labelsInput.value.trim();
+
+            // Parameters for the SDK call (Path params if any - likely none for /photos or /upload)
+            const params = {
+                // Example if path was /photos/{filename}: 'filename': file.name
+                'Content-Type': file.type,
+                'x-amz-meta-customLabels': custom
+            };
+
+            // Body payload IS the file itself for direct upload
+            const body = file;
+
+            // Additional parameters, including required headers
+            const additionalParams = {
+                headers: {
+                    'Content-Type': file.type,
+                    // Pass custom labels header (ensure backend handles this!)
+                    'x-amz-meta-customlabels': custom
+                    // API Key is handled by the client instance
+                }
+            };
+
+            console.log('Uploading file:', file.name, 'with labels:', custom, 'with type:', file.type); // Log for debugging
+
+            // Indicate uploading
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+
+            try {
+                // ==========================================================
+                // Verify SDK Method Name: Replace 'photosPut' or 'uploadPut'
+                // depending on your API endpoint and generated SDK
+                // ==========================================================
+                const result = await apigClient.photosPut(params, body, additionalParams); // Or uploadPut etc.
+
+                console.log('Upload response:', result); // Log the result for inspection
+                alert('Upload successful!');
+                fileInput.value = ''; // Clear file input
+                labelsInput.value = ''; // Clear labels input
+            } catch (error) {
+                console.error('Upload failed:', error);
+                // Try to parse error response if possible
+                let errorMsg = 'Upload failed. Check console for details.';
+                if (error.response && error.response.data && error.response.data.message) {
+                    errorMsg = `Upload failed: ${error.response.data.message}`;
+                } else if (error.message) {
+                    errorMsg = `Upload failed: ${error.message}`;
+                }
+                alert(errorMsg);
+            } finally {
+                // Re-enable button regardless of success/failure
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Photo';
+            }
+        });
+    </script>
+</body>
+
+</html>
