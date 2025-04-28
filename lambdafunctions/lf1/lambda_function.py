@@ -44,7 +44,7 @@ def lambda_handler(event, context):
     custom = meta.get("customlabels", "")
     custom_labels = [c.strip().lower() for c in custom.split(",") if c.strip()]
 
-    # Combine labels and build document
+    # Combine labels and build document for OpenSearch
     labels = list(set(rek_labels + custom_labels))
     doc = {
         "objectKey": key,
@@ -52,12 +52,6 @@ def lambda_handler(event, context):
         "createdTimestamp": datetime.utcnow().isoformat(),
         "labels": labels,
     }
-
-    # Index into OpenSearch, if index doesn't exist, create it
-    # os_client.index(index="photos", id=key, body=doc)
-
-    # if not os_client.indices.exists(index="photos"):
-    #     os_client.indices.create(index="photos")
 
     os_client.index(index="photos-v2", id=key, body=doc)
 
