@@ -78,7 +78,7 @@ def get_keywords_from_lex(query_text):
 
 
 def search_opensearch(keywords):
-    """Searches OpenSearch for photos matching the keywords."""
+    """Searches OpenSearch for photos matching the keywords identified by Lex."""
     if not keywords:
         return []
 
