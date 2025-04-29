@@ -10,7 +10,7 @@ s3 = boto3.client("s3")
 rekognition = boto3.client("rekognition")
 region = os.environ["AWS_REGION"]
 
-# AWS auth for OpenSearch
+# AWS auth for OpenSearch - small change
 creds = boto3.Session().get_credentials()
 awsauth = AWS4Auth(
     creds.access_key, creds.secret_key, region, "es", session_token=creds.token
